@@ -14,47 +14,47 @@ namespace Flights_Mock_API.Controllers
     [ApiController]
     public class FlightsController : ControllerBase
     {
-        private readonly List<FlightModel> _flightsList = new();
+        private List<FlightModel> _flightsList = new();
 
         public FlightsController()
         {
             _flightsList.Add(new FlightModel
             {
                 FlightNumber = 1277,
-                ArrivalAirportIata = "VCP",
-                PlaneRabCode = "LKJGCV",
+                ArrivalIata = "VCP",
+                PlaneRab = "LKJGCV",
                 Sales = 25,
-                ScheduledDate = "12/08/2024",
+                Schedule = "12/08/2024",
                 Status = true
             });
             
             _flightsList.Add(new FlightModel
             {
                 FlightNumber = 1300,
-                ArrivalAirportIata = "GRU",
-                PlaneRabCode = "JKSLDJ",
+                ArrivalIata = "GRU",
+                PlaneRab = "JKSLDJ",
                 Sales = 12,
-                ScheduledDate = "12/07/2024",
+                Schedule = "12/07/2024",
                 Status = true
             });
             
             _flightsList.Add(new FlightModel
             {
                 FlightNumber = 1355,
-                ArrivalAirportIata = "GRU",
-                PlaneRabCode = "LKJGCV",
+                ArrivalIata = "GRU",
+                PlaneRab = "LKJGCV",
                 Sales = 0,
-                ScheduledDate = "30/06/2024",
+                Schedule = "30/06/2024",
                 Status = false
             });
             
             _flightsList.Add(new FlightModel
             {
                 FlightNumber = 1401,
-                ArrivalAirportIata = "GAL",
-                PlaneRabCode = "CQRPOU",
+                ArrivalIata = "GAL",
+                PlaneRab = "CQRPOU",
                 Sales = 45,
-                ScheduledDate = "20/10/2024",
+                Schedule = "20/10/2024",
                 Status = true
             });
         }
@@ -67,28 +67,39 @@ namespace Flights_Mock_API.Controllers
         }
 
         // GET: api/Flights/5
-        [HttpGet("{id}", Name = "Get")]
-        public string Get(int id)
+        [HttpGet("{flightNumber}", Name = "Get")]
+        public ActionResult<string> Get(int flightNumber)
         {
-            return "value";
+            var flight = _flightsList.SingleOrDefault(flight => flight.FlightNumber == flightNumber);
+            
+            if (flight == null)
+            {
+                return NotFound();
+            }
+            return JsonConvert.SerializeObject(flight, Formatting.Indented);
         }
 
         // POST: api/Flights
         [HttpPost]
-        public void Post([FromBody] string value)
+        public ActionResult<FlightModel> Post([FromBody] FlightModel flight)
         {
+            _flightsList.Add(flight);
+            return CreatedAtAction("Get", new { flightNumber = flight.FlightNumber }, flight);
         }
 
         // PUT: api/Flights/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPatch("{flightNumber}")]
+        public ActionResult Put(int flightNumber, [FromBody] bool status)
         {
-        }
+            var flight = _flightsList.SingleOrDefault(flight => flight.FlightNumber == flightNumber);
 
-        // DELETE: api/Flights/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            if (flight == null)
+            {
+                return NotFound();
+            }
+            
+            flight.Status = status;
+            return NoContent(); 
         }
     }
 }
