@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Flights_Mock_API.Data;
 using Flights_Mock_API.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,49 +15,11 @@ namespace Flights_Mock_API.Controllers
     [ApiController]
     public class FlightsController : ControllerBase
     {
-        private List<FlightModel> _flightsList = new();
+        private List<FlightModel> _flightsList;
 
-        public FlightsController()
+        public FlightsController(DbContext dbContext)
         {
-            _flightsList.Add(new FlightModel
-            {
-                FlightNumber = 1277,
-                ArrivalIata = "VCP",
-                PlaneRab = "LKJGCV",
-                Sales = 25,
-                Schedule = "12/08/2024",
-                Status = true
-            });
-            
-            _flightsList.Add(new FlightModel
-            {
-                FlightNumber = 1300,
-                ArrivalIata = "GRU",
-                PlaneRab = "JKSLDJ",
-                Sales = 12,
-                Schedule = "12/07/2024",
-                Status = true
-            });
-            
-            _flightsList.Add(new FlightModel
-            {
-                FlightNumber = 1355,
-                ArrivalIata = "GRU",
-                PlaneRab = "LKJGCV",
-                Sales = 0,
-                Schedule = "30/06/2024",
-                Status = false
-            });
-            
-            _flightsList.Add(new FlightModel
-            {
-                FlightNumber = 1401,
-                ArrivalIata = "GAL",
-                PlaneRab = "CQRPOU",
-                Sales = 45,
-                Schedule = "20/10/2024",
-                Status = true
-            });
+            _flightsList = dbContext.data;
         }
         
         // GET: api/Flights
@@ -79,27 +42,66 @@ namespace Flights_Mock_API.Controllers
             return JsonConvert.SerializeObject(flight, Formatting.Indented);
         }
 
-        // POST: api/Flights
-        [HttpPost]
-        public ActionResult<FlightModel> Post([FromBody] FlightModel flight)
+        // POST: api/Flights/Add
+        [HttpPost("Add")]
+        public ActionResult<FlightModel> Post([FromBody] FlightDtoModel flight)
         {
-            _flightsList.Add(flight);
-            return CreatedAtAction("Get", new { flightNumber = flight.FlightNumber }, flight);
-        }
-
-        // PUT: api/Flights/5
-        [HttpPatch("{flightNumber}")]
-        public ActionResult Put(int flightNumber, [FromBody] bool status)
-        {
-            var flight = _flightsList.SingleOrDefault(flight => flight.FlightNumber == flightNumber);
-
-            if (flight == null)
+            var newFlight = new FlightModel
             {
-                return NotFound();
+                ArrivalIata = flight.ArrivalIata,
+                FlightNumber = new Random().Next(1000, 2000),
+                PlaneRab = flight.PlaneRab,
+                Sales = flight.Sales,
+                Schedule = flight.Schedule,
+                Status = flight.Status
+            };
+            
+            _flightsList.Add(newFlight);
+            return CreatedAtAction("Get", new { flightNumber = newFlight.FlightNumber }, newFlight);
+        }
+        
+        [HttpPatch("CheckSeats/{id}/{operation}/{newSeats}")]
+        public string PatchSeats(int? id, string? operation, int? newSeats)
+        {
+            
+            bool _opCheck;
+            if(operation != "Cancel" && operation != "Sell")
+            {
+                _opCheck = false;
+            }
+            else
+            {
+                _opCheck = true;
+            }
+            if (id == null || newSeats < 0 || _opCheck != true)
+            {
+                return "Unavaliable Id, Operation or Seat Numbers";
             }
             
-            flight.Status = status;
-            return NoContent(); 
+            var flight = _flightsList.FirstOrDefault(p => p.FlightNumber == id);
+            if (flight == null)
+            {
+                return "The flight doesn't exists";
+            }
+
+            if (flight.Status == false)
+            {
+                return $"The Flight isn't avaliable for some reason, try /ChangeStatus/{id}";
+            }
+
+            // Checking the avaliable seats
+            int _num = 0;
+            switch (operation)
+            {
+                case "Cancel":
+                    flight.Sales += (newSeats ?? 0);
+                    break;
+                case "Sell":
+                    flight.Sales -= (newSeats ?? 0);
+                    break;
+            }
+
+            return "ok";
         }
     }
 }
